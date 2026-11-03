@@ -1,0 +1,893 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Lunettes Vigie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout : application plein écran — scène 3D pilotable à gauche, console d'essai à droite (en bas sur mobile) */
+:root{
+  --bg:#E7EAEE; --panel:#F6F7F9; --fg:#141820; --muted:#566070; --line:#D2D8DF;
+  --chip:#ECEFF3; --label-bg:rgba(250,251,252,.9); --scope-bg:#EEF1F4;
+  --accent:#C96F17; --accent-soft:#F4DEC2; --accent-ink:#1A1206; --crit:#BE3326; --pi:#1F7A45;
+  --stage-a:#F7F8FA; --stage-b:#D4DAE1;
+  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1318; --panel:#161B22; --fg:#E5E8EC; --muted:#97A0AC; --line:#28303A;
+    --chip:#1D232C; --label-bg:rgba(22,27,34,.9); --scope-bg:#11161C;
+    --accent:#F0A24A; --accent-soft:#3A2A17; --accent-ink:#1A1206; --crit:#F0675A; --pi:#4FBF7E;
+    --stage-a:#262E39; --stage-b:#0C1015; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1318; --panel:#161B22; --fg:#E5E8EC; --muted:#97A0AC; --line:#28303A;
+  --chip:#1D232C; --label-bg:rgba(22,27,34,.9); --scope-bg:#11161C;
+  --accent:#F0A24A; --accent-soft:#3A2A17; --accent-ink:#1A1206; --crit:#F0675A; --pi:#4FBF7E;
+  --stage-a:#262E39; --stage-b:#0C1015; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;overflow:hidden}
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 372px}
+
+/* Scène */
+.stage{position:relative;min-width:0;min-height:0;overflow:hidden;background:radial-gradient(110% 85% at 45% 30%,var(--stage-a) 0%,var(--stage-b) 100%)}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#c:active{cursor:grabbing}
+.labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;left:0;top:0;display:flex;align-items:center;gap:6px;white-space:nowrap;will-change:transform}
+.lbl i{width:8px;height:8px;border-radius:50%;background:var(--fg);border:2px solid var(--label-bg);flex:none}
+.lbl span{font-size:12px;line-height:1.2;padding:4px 8px;border-radius:6px;background:var(--label-bg);border:1px solid var(--line);color:var(--fg)}
+.lbl.vib i{background:var(--accent)}
+.lbl.vib span{border-color:var(--accent);font-weight:700}
+.lbl.pi i{background:var(--pi)}
+.lbl.pi span{border-color:var(--pi);font-weight:700}
+.lbl.haz span{font-family:var(--mono);background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:500}
+.lbl.haz i{background:var(--accent)}
+
+.top{position:absolute;top:14px;left:max(16px,env(safe-area-inset-left,0px));right:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
+.brand{font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.brand svg{width:26px;height:26px}
+.status{font-family:var(--mono);font-size:11.5px;display:inline-flex;align-items:center;gap:8px;padding:5px 11px;border-radius:999px;background:var(--label-bg);border:1px solid var(--line);color:var(--fg)}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.status.on i{background:var(--crit);box-shadow:0 0 0 3px var(--accent-soft)}
+.bottom{position:absolute;left:max(16px,env(safe-area-inset-left,0px));right:16px;bottom:14px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;pointer-events:none}
+.views{pointer-events:auto;display:flex;gap:2px;padding:3px;border-radius:10px;background:var(--label-bg);border:1px solid var(--line);max-width:100%;overflow-x:auto;scrollbar-width:none}
+.views button{font:inherit;font-size:13px;padding:6px 11px;border:0;border-radius:7px;background:transparent;color:var(--fg);cursor:pointer;white-space:nowrap}
+.views button:hover{background:var(--chip)}
+.views button[aria-pressed="true"]{background:var(--fg);color:var(--panel)}
+.hint{font-size:12px;color:var(--muted)}
+.fail{position:absolute;inset:auto 16px 50% 16px;text-align:center;color:var(--fg)}
+
+/* Console */
+.panel{min-height:0;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);padding-block:22px 30px;padding-left:22px;padding-right:max(22px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:28px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+h1{font-family:var(--display);font-size:32px;line-height:1.02;margin:6px 0 8px;font-weight:800;letter-spacing:-.025em;text-wrap:balance}
+.lede{margin:0;color:var(--muted);max-width:44ch}
+section{display:flex;flex-direction:column;gap:12px}
+h2{font-family:var(--display);font-size:15.5px;font-weight:700;margin:0;letter-spacing:-.005em;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+h2 small{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted)}
+
+.dirs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.dir,.seg button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 6px;border:1px solid var(--line);border-radius:10px;background:var(--chip);color:var(--fg);font:inherit;font-size:13px;cursor:pointer;min-width:0}
+.dir svg{width:20px;height:20px;flex:none}
+.dir:hover,.seg button:hover{border-color:var(--muted)}
+.dir[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.dir.wide{grid-column:span 2;flex-direction:row;gap:8px}
+.dir.stop{flex-direction:row;gap:6px}
+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.seg button{gap:1px;padding:8px 6px}
+.seg button small{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.seg button[aria-pressed="true"]{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg);font-weight:700}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{display:flex;justify-content:space-between;align-items:baseline;font-size:14px}
+.field output{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums;font-weight:500}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+.scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+
+#scope{display:block;width:100%;height:88px;border:1px solid var(--line);border-radius:8px;background:var(--scope-bg)}
+.scope-cap{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:4px}
+
+dl{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px 14px;font-size:13.5px}
+dt{color:var(--muted)}
+dd{margin:0;font-variant-numeric:tabular-nums;min-width:0}
+.readout dd{font-family:var(--mono);font-size:12.5px}
+.lvl{display:inline-block;padding:1px 8px;border-radius:999px;background:var(--chip);border:1px solid var(--line)}
+.lvl[data-sev="1"]{background:var(--accent-soft);border-color:var(--accent)}
+.lvl[data-sev="2"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.lvl[data-sev="3"]{background:var(--crit);border-color:var(--crit);color:#fff}
+
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px}
+.sw:last-child{border-bottom:0}
+.sw small{display:block;color:var(--muted);font-size:12px}
+.sw input{appearance:none;-webkit-appearance:none;width:36px;height:21px;border-radius:999px;background:var(--line);position:relative;cursor:pointer;flex:none;transition:background .15s;margin:0}
+.sw input::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .15s}
+.sw input:checked{background:var(--accent)}
+.sw input:checked::after{transform:translateX(15px)}
+.toggles{display:flex;flex-direction:column}
+
+.swatches{display:flex;gap:10px;flex-wrap:wrap}
+.swatch{display:flex;align-items:center;gap:8px;padding:5px 11px 5px 5px;border:1px solid var(--line);border-radius:999px;background:var(--chip);color:var(--fg);font:inherit;font-size:13px;cursor:pointer}
+.swatch i{width:22px;height:22px;border-radius:50%;border:1px solid rgba(127,127,127,.4)}
+.swatch[aria-pressed="true"]{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+
+.code{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;font-size:13.5px}
+.code li{display:grid;grid-template-columns:70px minmax(0,1fr);gap:12px;align-items:center}
+.pat{display:flex;gap:3px;font-family:var(--mono);font-size:10px;color:var(--muted);align-items:center}
+.pat b{width:14px;height:14px;border-radius:3px;border:1.5px solid var(--muted);display:inline-block}
+.pat b.on{background:var(--accent);border-color:var(--accent)}
+.note{font-size:12.5px;color:var(--muted);margin:0;max-width:48ch}
+.callout{font-size:13px;margin:0;padding:10px 12px;border-radius:8px;background:var(--chip);border:1px solid var(--line)}
+kbd{font-family:var(--mono);font-size:11px;padding:0 4px;border:1px solid var(--line);border-radius:4px;background:var(--chip)}
+.back{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;margin-bottom:14px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--chip);color:var(--fg);font-size:13px;text-decoration:none}
+.back:hover{border-color:var(--accent)}
+
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-weight:400;color:var(--muted);text-align:left;font-size:11.5px;padding:0 0 6px;border-bottom:1px solid var(--line)}
+td{padding:6px 0;border-bottom:1px solid var(--line);vertical-align:top}
+td:first-child{padding-right:10px}
+td.q,th.q{text-align:center;font-family:var(--mono);font-size:12px;width:34px}
+td.p,th.p{text-align:right;font-family:var(--mono);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums;width:64px}
+tfoot td{font-weight:700;border-bottom:0;padding-top:8px}
+tfoot td.p{font-size:14px;color:var(--fg)}
+tr.opt td:first-child::after{content:" · capteur central";color:var(--muted);font-size:11.5px}
+
+.wires{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;font-size:13px}
+.wires li{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px}
+.wires b{font-weight:700}
+.wires code{font-family:var(--mono);font-size:11.5px;line-height:1.55}
+.watch{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+
+@media (max-width:820px){
+  .app{grid-template-columns:1fr;grid-template-rows:minmax(0,56fr) minmax(0,44fr)}
+  .panel{border-left:0;border-top:1px solid var(--line);padding-block:16px 26px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .hint{display:none}
+  h1{font-size:25px}
+  .brand{font-size:16px}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+
+<div class="app">
+  <div class="stage" id="stage">
+    <canvas id="c" aria-label="Modèle 3D des lunettes, faites glisser pour tourner la vue"></canvas>
+    <div class="labels" id="labels"></div>
+    <div class="top">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="11" width="11" height="9" rx="3.5"/><rect x="18" y="11" width="11" height="9" rx="3.5"/><path d="M14 14h4"/><path d="M1 11.5c1-.5 1.6-.5 2-.5M31 11.5c-1-.5-1.6-.5-2-.5" stroke-linecap="round"/></svg>
+        Vigie
+      </div>
+      <div class="status" id="status"><i></i><span id="statusTxt">Veille</span></div>
+    </div>
+    <div class="bottom">
+      <div class="views" role="group" aria-label="Points de vue">
+        <button data-view="face" aria-pressed="false">Face</button>
+        <button data-view="tq" aria-pressed="true">3/4</button>
+        <button data-view="profil" aria-pressed="false">Profil</button>
+        <button data-view="dessus" aria-pressed="false">Dessus</button>
+        <button data-view="porteur" aria-pressed="false">Côté porteur</button>
+        <button data-view="scene" aria-pressed="false">Scène</button>
+      </div>
+      <div class="hint">Glisser pour tourner · molette ou pincement pour zoomer · clic droit ou deux doigts pour déplacer</div>
+    </div>
+    <p class="fail" id="fail" hidden>Le moteur 3D n'a pas pu se charger. Rechargez la page.</p>
+  </div>
+
+  <aside class="panel">
+    <header>
+      <a class="back" href="./" onclick="if(history.length>1){history.back();return false;}">← Retour à la simulation</a>
+      <p class="eyebrow">Prototype étudiant · Raspberry Pi</p>
+      <h1>Lunettes Vigie</h1>
+      <p class="lede">Lunettes caméra pour personnes aveugles, construites avec un Raspberry Pi Zero 2 W, une monture imprimée en 3D et des composants à petit prix. Un obstacle fait vibrer la branche du côté concerné.</p>
+    </header>
+
+    <section>
+      <h2>Simuler un danger <small>côtés du porteur</small></h2>
+      <div class="dirs" role="group" aria-label="Direction du danger">
+        <button class="dir" data-dir="left" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Gauche</button>
+        <button class="dir" data-dir="front" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>Devant</button>
+        <button class="dir" data-dir="right" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Droite</button>
+        <button class="dir wide" data-dir="down" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h8v8h10"/><path d="M15 19l3-3-3-3"/></svg>Marche / trou</button>
+        <button class="dir stop" data-dir="off" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Arrêt</button>
+      </div>
+      <div class="field">
+        <label for="dist">Distance de l'obstacle <output id="distOut" for="dist">1,4 m</output></label>
+        <input type="range" id="dist" min="0.4" max="4" step="0.1" value="1.4">
+        <div class="scale"><span>0,4 m</span><span>seuil d'alerte 3 m</span><span>4 m</span></div>
+      </div>
+      <div>
+        <canvas id="scope" aria-label="Signal PWM envoyé aux deux vibreurs sur les 3 dernières secondes"></canvas>
+        <div class="scope-cap"><span>−3 s</span><span>PWM vers les moteurs ERM</span><span>maintenant</span></div>
+      </div>
+      <dl class="readout">
+        <dt>Niveau</dt><dd><span class="lvl" id="rLvl" data-sev="0">Aucun danger</span></dd>
+        <dt>Détecté par</dt><dd id="rSrc">—</dd>
+        <dt>Motif</dt><dd id="rPat">—</dd>
+        <dt>Rythme</dt><dd id="rRyt">—</dd>
+      </dl>
+      <label class="sw"><span>Scénario de marche<small>approche d'obstacles en boucle</small></span><input type="checkbox" id="auto"></label>
+      <p class="note">Clavier : <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd>, <kbd>Échap</kbd> pour arrêter. Dans la scène 3D, les distances sont compressées.</p>
+    </section>
+
+    <section>
+      <h2>Capteur de distance central</h2>
+      <div class="seg" role="group" aria-label="Capteur au centre de la monture">
+        <button data-lidar="none" aria-pressed="false">Aucun<small>0 €</small></button>
+        <button data-lidar="vl" aria-pressed="false">VL53L1X<small>ToF · 4 m</small></button>
+        <button data-lidar="luna" aria-pressed="true">TF-Luna<small>LiDAR · 8 m</small></button>
+      </div>
+      <p class="callout" id="lidarNote"></p>
+    </section>
+
+    <section>
+      <h2>Affichage</h2>
+      <div class="toggles">
+        <label class="sw"><span>Rayons X<small>voir le Pi et la batterie dans les boîtiers</small></span><input type="checkbox" id="xray"></label>
+        <label class="sw"><span>Vue éclatée</span><input type="checkbox" id="explode"></label>
+        <label class="sw"><span>Câbles</span><input type="checkbox" id="cables" checked></label>
+        <label class="sw"><span>Annotations</span><input type="checkbox" id="labelsT" checked></label>
+        <label class="sw"><span>Champs des capteurs<small>caméra et faisceau du capteur central</small></span><input type="checkbox" id="fov"></label>
+        <label class="sw"><span>Verres teintés</span><input type="checkbox" id="tint"></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Monture imprimée en 3D</h2>
+      <div class="swatches" role="group" aria-label="Filament de la monture">
+        <button class="swatch" data-col="#1c1f25" aria-pressed="true"><i style="background:#1c1f25"></i>PLA noir</button>
+        <button class="swatch" data-col="#2a4a8a" aria-pressed="false"><i style="background:#2a4a8a"></i>PLA bleu</button>
+        <button class="swatch" data-col="#d9d3c6" aria-pressed="false"><i style="background:#d9d3c6"></i>PETG naturel</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Nomenclature <small>budget étudiant</small></h2>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Composant</th><th class="q">Qté</th><th class="p">Prix</th></tr></thead>
+          <tbody id="bom"></tbody>
+          <tfoot><tr><td>Total</td><td class="q"></td><td class="p" id="bomTotal"></td></tr></tfoot>
+        </table>
+      </div>
+      <p class="note">Prix sans « ≈ » relevés en octobre 2026 (Pi chez TME, TF-Luna chez RobotShop à 20,96 $ hors port, VL53L1X chez TinyTronics). Les prix avec « ≈ » sont des estimations pour du matériel générique.</p>
+    </section>
+
+    <section>
+      <h2>Câblage sur le Pi Zero 2 W</h2>
+      <ul class="wires" id="wires">
+        <li><b>Caméra</b><code>port CSI (nappe 22 broches Pi Zero)</code></li>
+        <li id="wLidar"></li>
+        <li><b>Vibreur G</b><code>GPIO18 (broche 12, PWM) → transistor 2N2222</code></li>
+        <li><b>Vibreur D</b><code>GPIO13 (broche 33, PWM) → transistor 2N2222</code></li>
+        <li><b>LED d'état</b><code>GPIO17 (broche 11) + 330 Ω</code></li>
+        <li><b>Alimentation</b><code>LiPo → chargeur/élévateur → 5 V (broche 2), GND (broche 14)</code></li>
+      </ul>
+      <p class="note">Chaque moteur : base du transistor par une résistance de 1 kΩ, moteur entre le 3,3 V et le collecteur, diode 1N4148 en parallèle sur le moteur. Ne branchez jamais un moteur directement sur une broche GPIO.</p>
+    </section>
+
+    <section>
+      <h2>Code haptique</h2>
+      <ul class="code">
+        <li><span class="pat"><b class="on"></b><b></b></span><span>Obstacle à gauche : vibreur gauche seul</span></li>
+        <li><span class="pat"><b></b><b class="on"></b></span><span>Obstacle à droite : vibreur droit seul</span></li>
+        <li><span class="pat"><b class="on"></b><b class="on"></b></span><span>Obstacle devant : les deux ensemble</span></li>
+        <li><span class="pat"><b class="on"></b>›<b class="on"></b></span><span>Marche ou trou : alternance gauche puis droite</span></li>
+      </ul>
+      <p class="note">Au-delà de 3 m, rien ne vibre. Plus l'obstacle approche, plus les impulsions se rapprochent (1 par seconde à 3 m). Sous 0,8 m, la vibration devient continue.</p>
+    </section>
+
+    <section>
+      <h2>Points à surveiller</h2>
+      <ul class="watch">
+        <li>Poids d'environ 85 g, plus que des lunettes du commerce. Mettre le Pi d'un côté et la batterie de l'autre équilibre la monture.</li>
+        <li>Autonomie estimée autour de 1 h 30 avec une LiPo de 1200 mAh, pour un Pi Zero 2 W et sa caméra qui consomment environ 2,5 W.</li>
+        <li>Le Pi Zero 2 W fait tourner un petit modèle de détection (OpenCV, TFLite) à quelques images par seconde. Le capteur central donne la distance devant en continu, ce qui compense cette lenteur.</li>
+      </ul>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(() => {
+  if (!window.THREE || !THREE.OrbitControls) { document.getElementById('fail').hidden = false; return; }
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('c');
+  const fmt = (n, d = 1) => n.toFixed(d).replace('.', ',');
+
+  /* ---------- Renderer, caméra, contrôles ---------- */
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 500);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.minDistance = 7; controls.maxDistance = 95;
+
+  scene.add(new THREE.HemisphereLight(0xf2f5ff, 0x3d342a, 0.95));
+  const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(10, 18, 14); scene.add(key);
+  const rimL = new THREE.DirectionalLight(0xbcd2ff, 0.9); rimL.position.set(-14, 6, -16); scene.add(rimL);
+  const fillL = new THREE.DirectionalLight(0xffe6c8, 0.5); fillL.position.set(-10, -4, 12); scene.add(fillL);
+
+  /* ---------- Matériaux ---------- */
+  const std = (o) => new THREE.MeshStandardMaterial(o);
+  const frameMat = std({ color: 0x1c1f25, roughness: 0.55, metalness: 0.02 });
+  const lensMat = new THREE.MeshPhysicalMaterial({ color: 0xd4e2ec, transparent: true, opacity: 0.2, roughness: 0.04, metalness: 0.1, clearcoat: 1, clearcoatRoughness: 0.05, side: THREE.DoubleSide, depthWrite: false });
+  const metalMat = std({ color: 0xc7ccd3, roughness: 0.3, metalness: 0.7 });
+  const glassBlack = std({ color: 0x07080a, roughness: 0.08, metalness: 0.4 });
+  const lensBlue = std({ color: 0x1d3a66, roughness: 0.05, metalness: 0.6, emissive: 0x0a1a33, emissiveIntensity: 0.7 });
+  const ledMat = std({ color: 0xf2f2f2, emissive: 0x6cff9a, emissiveIntensity: 0, roughness: 0.2 });
+  const piGreen = std({ color: 0x1f7a45, roughness: 0.55 });
+  const blueBoard = std({ color: 0x1d48a0, roughness: 0.55 });
+  const perfMat = std({ color: 0xa47a42, roughness: 0.8 });
+  const chipMat = std({ color: 0x111316, roughness: 0.45 });
+  const lipoMat = std({ color: 0xc3c9d0, roughness: 0.3, metalness: 0.6 });
+  const lunaMat = std({ color: 0x17191d, roughness: 0.5 });
+  const padBase = std({ color: 0x4a5059, roughness: 0.9, emissive: 0xff9a2e, emissiveIntensity: 0 });
+  const motorBase = std({ color: 0xb9bec6, roughness: 0.3, metalness: 0.75, emissive: 0xff9a2e, emissiveIntensity: 0 });
+  const silicone = std({ color: 0xdfe3e8, roughness: 0.6, transparent: true, opacity: 0.8 });
+  const ribbonMat = std({ color: 0xe7e0cf, roughness: 0.7 });
+  const redWire = std({ color: 0xb8322a, roughness: 0.5 });
+  const darkWire = std({ color: 0x2a2d33, roughness: 0.5 });
+
+  const root = new THREE.Group(); scene.add(root);
+  const parts = [];
+  const part = (obj, off) => { parts.push({ obj, base: obj.position.clone(), off: new THREE.Vector3(...off) }); return obj; };
+  const anchors = [];
+  const labelsEl = document.getElementById('labels');
+  function anchor(parent, pos, text, opts = {}) {
+    const o = new THREE.Object3D(); o.position.set(...pos); parent.add(o);
+    const el = document.createElement('div'); el.className = 'lbl' + (opts.cls ? ' ' + opts.cls : '');
+    el.innerHTML = '<i></i><span></span>'; el.querySelector('span').textContent = text;
+    labelsEl.appendChild(el);
+    anchors.push({ o, el, internal: !!opts.internal, cond: opts.cond }); return o;
+  }
+
+  /* ---------- Formes utilitaires ---------- */
+  function lensOutline(path, w, h, rT, rB, ins) {
+    const xt0 = -w / 2, xt1 = w / 2, xb0 = -w / 2 + ins, xb1 = w / 2 - ins, y0 = -h / 2, y1 = h / 2;
+    const aB = rB / h, aT = 1 - rT / h;
+    const sx = (a, left) => left ? xb0 + (xt0 - xb0) * a : xb1 + (xt1 - xb1) * a;
+    path.moveTo(xb0 + rB, y0);
+    path.lineTo(xb1 - rB, y0);
+    path.quadraticCurveTo(xb1, y0, sx(aB, false), y0 + h * aB);
+    path.lineTo(sx(aT, false), y0 + h * aT);
+    path.quadraticCurveTo(xt1, y1, xt1 - rT, y1);
+    path.lineTo(xt0 + rT, y1);
+    path.quadraticCurveTo(xt0, y1, sx(aT, true), y0 + h * aT);
+    path.lineTo(sx(aB, true), y0 + h * aB);
+    path.quadraticCurveTo(xb0, y0, xb0 + rB, y0);
+    return path;
+  }
+  function roundRect(w, h, r) {
+    const s = new THREE.Shape();
+    s.moveTo(-w / 2 + r, -h / 2); s.lineTo(w / 2 - r, -h / 2); s.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + r);
+    s.lineTo(w / 2, h / 2 - r); s.quadraticCurveTo(w / 2, h / 2, w / 2 - r, h / 2); s.lineTo(-w / 2 + r, h / 2);
+    s.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - r); s.lineTo(-w / 2, -h / 2 + r); s.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2);
+    return s;
+  }
+  const ext = (d, b = 0.07) => ({ depth: d, bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 3, curveSegments: 28 });
+  const cyl = (r, h, mat, seg = 32) => new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), mat);
+  const box = (x, y, z, mat) => new THREE.Mesh(new THREE.BoxGeometry(x, y, z), mat);
+
+  /* ---------- Face avant ---------- */
+  const LW = 5.0, LH = 4.0, RT = 0.9, RB = 1.6, INS = 0.35, T = 0.5, LX = 3.45;
+  const rimShape = lensOutline(new THREE.Shape(), LW + 2 * T, LH + 2 * T, RT + T, RB + T * 0.8, INS);
+  rimShape.holes.push(lensOutline(new THREE.Path(), LW, LH, RT, RB, INS));
+  const rimGeo = new THREE.ExtrudeGeometry(rimShape, ext(0.5)); rimGeo.translate(0, 0, -0.25);
+  const lensGeo = new THREE.ShapeGeometry(lensOutline(new THREE.Shape(), LW + 0.12, LH + 0.12, RT + 0.06, RB + 0.05, INS), 32);
+  const epGeo = new THREE.ExtrudeGeometry(roundRect(1.1, 1.6, 0.35), ext(1.5)); epGeo.translate(0, 0, -0.75);
+
+  for (const s of [1, -1]) {
+    const rim = new THREE.Mesh(rimGeo, frameMat); rim.position.set(s * LX, 0, 0); rim.renderOrder = 2; root.add(rim);
+    const lens = new THREE.Mesh(lensGeo, lensMat); lens.position.set(s * LX, 0, 0); lens.renderOrder = 3; root.add(lens);
+    part(lens, [0, 0, 1.8]);
+    const pad = new THREE.Mesh(new THREE.SphereGeometry(0.34, 20, 14), silicone);
+    pad.scale.set(0.45, 1, 0.3); pad.position.set(s * 1.05, -0.55, -0.6); pad.rotation.z = s * 0.35; root.add(pad);
+    const stem = cyl(0.04, 0.7, metalMat, 8); stem.position.set(s * 0.95, -0.05, -0.45); stem.rotation.x = 0.9; root.add(stem);
+    const endp = new THREE.Mesh(epGeo, frameMat); endp.position.set(s * 6.35, 1.35, -0.55); endp.renderOrder = 2; root.add(endp);
+    const hinge = cyl(0.16, 0.95, metalMat, 16); hinge.position.set(s * 6.62, 1.35, -1.38); root.add(hinge);
+  }
+  const br = new THREE.Shape();
+  br.moveTo(-1.3, 0.95); br.quadraticCurveTo(0, 1.45, 1.3, 0.95); br.lineTo(1.3, 1.95); br.quadraticCurveTo(0, 2.1, -1.3, 1.95); br.closePath();
+  const brGeo = new THREE.ExtrudeGeometry(br, ext(0.5)); brGeo.translate(0, 0, -0.25);
+  const bridge = new THREE.Mesh(brGeo, frameMat); bridge.renderOrder = 2; root.add(bridge);
+
+  // Caméra OV5647 (côté gauche du porteur = +x)
+  const camGroup = new THREE.Group(); camGroup.position.set(6.35, 1.35, 0.28); root.add(camGroup);
+  const camRing = cyl(0.34, 0.1, chipMat, 40); camRing.rotation.x = Math.PI / 2; camGroup.add(camRing);
+  const lensC = cyl(0.25, 0.16, glassBlack, 40); lensC.rotation.x = Math.PI / 2; camGroup.add(lensC);
+  const iris = new THREE.Mesh(new THREE.CircleGeometry(0.12, 32), lensBlue); iris.position.z = 0.085; camGroup.add(iris);
+  part(camGroup, [0, 0, 2.6]);
+  anchor(camGroup, [0, 0, 0.1], 'Caméra OV5647 · 5 MP');
+
+  // LED d'état (côté droit)
+  const ledGroup = new THREE.Group(); ledGroup.position.set(-6.35, 1.35, 0.28); root.add(ledGroup);
+  const led = cyl(0.13, 0.12, ledMat, 24); led.rotation.x = Math.PI / 2; ledGroup.add(led);
+  part(ledGroup, [0, 0, 2.6]);
+  anchor(ledGroup, [0, 0, 0.1], "LED d'état");
+
+  // Champ de la caméra (≈120°)
+  const fovCam = new THREE.Group(); camGroup.add(fovCam); fovCam.visible = false;
+  (() => {
+    const L = 15, hx = Math.tan(60 * Math.PI / 180) * L, hy = Math.tan(38 * Math.PI / 180) * L;
+    const c = [[hx, hy], [-hx, hy], [-hx, -hy], [hx, -hy]].map(([x, y]) => new THREE.Vector3(x, y, L));
+    const pos = [], lp = [];
+    for (let i = 0; i < 4; i++) {
+      const a = c[i], b = c[(i + 1) % 4];
+      pos.push(0, 0, 0, a.x, a.y, a.z, b.x, b.y, b.z);
+      lp.push(0, 0, 0, a.x, a.y, a.z, a.x, a.y, a.z, b.x, b.y, b.z);
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    fovCam.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xf0a24a, transparent: true, opacity: 0.06, side: THREE.DoubleSide, depthWrite: false })));
+    const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(lp, 3));
+    fovCam.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xf0a24a, transparent: true, opacity: 0.4 })));
+  })();
+
+  /* ---------- Capteur central : TF-Luna ou VL53L1X ---------- */
+  const lidar = new THREE.Group(); root.add(lidar); part(lidar, [0, 0.9, 2.6]);
+  function beam(halfDeg, len) {
+    const r = Math.tan(halfDeg * Math.PI / 180) * len;
+    const g = new THREE.ConeGeometry(r, len, 40, 1, true); g.rotateX(-Math.PI / 2); g.translate(0, 0, len / 2);
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xff4a3d, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }));
+    m.visible = false; return m;
+  }
+  // TF-Luna : 35 × 21 × 12,5 mm, posé sur le pont
+  const luna = new THREE.Group(); luna.position.set(0, 3.02, 0.36); lidar.add(luna);
+  luna.add(box(3.5, 2.1, 1.25, lunaMat));
+  for (const [x, mat] of [[-0.82, lensBlue], [0.82, glassBlack]]) {
+    const l = cyl(0.46, 0.12, mat, 40); l.rotation.x = Math.PI / 2; l.position.set(x, 0.05, 0.64); luna.add(l);
+    const rr = cyl(0.55, 0.06, chipMat, 40); rr.rotation.x = Math.PI / 2; rr.position.set(x, 0.05, 0.62); luna.add(rr);
+  }
+  const lunaFoot = box(2.2, 0.35, 1.0, frameMat); lunaFoot.position.set(0, -1.15, -0.1); luna.add(lunaFoot);
+  const lunaBeam = beam(1, 34); lunaBeam.position.set(0, 0.05, 0.7); luna.add(lunaBeam);
+  anchor(luna, [0, 1.05, 0.2], 'LiDAR TF-Luna · 8 m', { cond: () => lidarMode === 'luna' });
+  // VL53L1X : carte 25 × 10,7 mm
+  const vl = new THREE.Group(); vl.position.set(0, 1.5, 0.36); lidar.add(vl);
+  vl.add(box(2.5, 1.07, 0.16, blueBoard));
+  const vlChip = box(0.49, 0.25, 0.12, chipMat); vlChip.position.z = 0.12; vl.add(vlChip);
+  const vlBeam = beam(13.5, 17); vlBeam.position.z = 0.15; vl.add(vlBeam);
+  anchor(vl, [0, 0.4, 0.1], 'Capteur ToF VL53L1X · 4 m', { cond: () => lidarMode === 'vl' });
+
+  /* ---------- Branches ---------- */
+  const ts = new THREE.Shape();
+  ts.moveTo(0, 0.6);
+  ts.lineTo(8.6, 0.55);
+  ts.quadraticCurveTo(10.5, 0.5, 11.4, 0.25);
+  ts.quadraticCurveTo(12.6, 0.0, 13.6, -1.2);
+  ts.quadraticCurveTo(14.05, -1.9, 13.75, -2.3);
+  ts.quadraticCurveTo(13.45, -2.5, 13.2, -2.1);
+  ts.quadraticCurveTo(12.6, -1.0, 11.4, -0.25);
+  ts.quadraticCurveTo(10.5, -0.5, 8.6, -0.55);
+  ts.lineTo(0, -0.55);
+  ts.closePath();
+  const tGeo = new THREE.ExtrudeGeometry(ts, { depth: 0.48, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.06, bevelSegments: 3, curveSegments: 28 });
+  tGeo.translate(0, 0, -0.24); tGeo.rotateY(Math.PI / 2);
+  // Boîtier imprimé fixé sur la face externe de chaque branche
+  const POD = { len: 7.6, h: 3.4, t: 0.8 };
+  const podGeo = new THREE.ExtrudeGeometry(roundRect(POD.len, POD.h, 0.6), ext(POD.t, 0.08)); podGeo.translate(0, 0, -POD.t / 2); podGeo.rotateY(Math.PI / 2);
+
+  function glowTex() {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+    const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(255,190,110,1)'); gr.addColorStop(0.35, 'rgba(245,150,50,.65)'); gr.addColorStop(1, 'rgba(240,140,40,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+  }
+  const gTex = glowTex();
+  const ringGeo = new THREE.TorusGeometry(0.55, 0.03, 8, 56); ringGeo.rotateY(Math.PI / 2);
+
+  const sides = [];
+  for (const s of [1, -1]) {
+    const inner = -s, outer = s;
+    const tg = new THREE.Group(); tg.position.set(s * 6.62, 1.35, -1.42); tg.rotation.y = -s * 0.045; root.add(tg);
+    part(tg, [s * 2.8, 0, 0]);
+    const tm = new THREE.Mesh(tGeo, frameMat); tm.renderOrder = 2; tg.add(tm);
+
+    // Moteur vibrant ERM pastille 10 mm, collé sur la face interne
+    const motorMat = motorBase.clone(), padMat = padBase.clone();
+    const motor = new THREE.Group(); motor.position.set(inner * 0.2, -0.02, -9.3); tg.add(motor);
+    part(motor, [inner * 1.9, -0.4, 0]);
+    const coin = cyl(0.5, 0.27, motorMat, 40); coin.rotation.z = Math.PI / 2; motor.add(coin);
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: gTex, transparent: true, depthTest: false, depthWrite: false, opacity: 0 }));
+    sprite.scale.set(2.8, 2.8, 1); sprite.renderOrder = 10; motor.add(sprite);
+    const padG = new THREE.Group(); padG.position.set(inner * 0.4, -0.02, -9.3); tg.add(padG);
+    part(padG, [inner * 3.0, -0.4, 0]);
+    const pad = cyl(0.55, 0.08, padMat, 40); pad.rotation.z = Math.PI / 2; padG.add(pad);
+    const rings = [];
+    for (let i = 0; i < 4; i++) {
+      const m = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xf0a24a, transparent: true, opacity: 0, depthWrite: false }));
+      m.position.x = inner * 0.05; m.visible = false; padG.add(m); rings.push({ m, age: 9 });
+    }
+    anchor(padG, [inner * 0.1, 0, 0], s === 1 ? 'Vibreur gauche · ERM 10 mm' : 'Vibreur droit · ERM 10 mm', { cls: 'vib' });
+
+    // Boîtier
+    const podPos = [outer * 0.74, 0.25, -4.7];
+    const pod = new THREE.Mesh(podGeo, frameMat); pod.position.set(...podPos); pod.renderOrder = 2; tg.add(pod);
+    part(pod, [outer * 1.4, 0, 0]);
+    const inside = new THREE.Group(); inside.position.set(...podPos); tg.add(inside);
+    part(inside, [outer * 3.2, 0.5, 0]);
+
+    if (s === 1) {
+      // Raspberry Pi Zero 2 W (65 × 30 mm) + carte de commande des moteurs
+      const pi = box(0.12, 3.0, 6.5, piGreen); pi.position.x = -outer * 0.14; inside.add(pi);
+      const soc = box(0.1, 1.15, 1.15, chipMat); soc.position.set(-outer * 0.03, -0.15, 0.4); inside.add(soc);
+      const hdr = box(0.28, 0.5, 5.1, chipMat); hdr.position.set(outer * 0.02, 1.18, 0); inside.add(hdr);
+      const sd = box(0.1, 0.9, 0.7, metalMat); sd.position.set(-outer * 0.03, -0.5, -2.95); inside.add(sd);
+      const csi = box(0.08, 1.4, 0.3, chipMat); csi.position.set(-outer * 0.03, -0.1, 3.15); inside.add(csi);
+      const drv = box(0.07, 1.2, 1.6, perfMat); drv.position.set(outer * 0.25, -0.6, -1.9); inside.add(drv);
+      for (const z of [-2.3, -1.6]) { const tr = box(0.18, 0.25, 0.2, chipMat); tr.position.set(outer * 0.36, -0.55, z); inside.add(tr); }
+      anchor(pod, [outer * 0.45, 0.9, 0], 'Raspberry Pi Zero 2 W', { cls: 'pi' });
+      anchor(inside, [outer * 0.3, -0.6, -1.9], 'Commande moteurs (2× 2N2222)', { internal: true });
+    } else {
+      // Batterie LiPo 1200 mAh + module chargeur USB-C / élévateur 5 V
+      const lipo = box(0.55, 3.0, 4.8, lipoMat); lipo.position.set(-outer * 0.05, 0, -1.1); inside.add(lipo);
+      const chg = box(0.1, 1.4, 1.8, blueBoard); chg.position.set(outer * 0.08, 0.5, 2.55); inside.add(chg);
+      const usb = box(0.28, 0.34, 0.5, metalMat); usb.position.set(outer * 0.15, 0.5, 3.4); inside.add(usb);
+      anchor(pod, [outer * 0.45, 0.9, 0], 'Batterie LiPo 1200 mAh', { cls: 'pi' });
+      anchor(inside, [outer * 0.15, 0.6, 2.55], 'Chargeur USB-C + élévateur 5 V', { internal: true });
+    }
+    sides.push({ s, tg, motorMat, padMat, sprite, rings, level: 0, prev: 0, lastRing: 0 });
+  }
+
+  /* ---------- Câbles (vue assemblée) ---------- */
+  const cables = new THREE.Group(); root.add(cables);
+  const tube = (pts, r, mat) => new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))), 80, r, 8), mat);
+  cables.add(tube([[6.35, 1.35, -0.4], [6.95, 1.45, -1.4], [7.3, 1.55, -2.5]], 0.07, ribbonMat)); // nappe caméra
+  cables.add(tube([[-7.3, 1.9, -2.4], [-6.9, 2.05, -1.6], [-6.3, 2.35, -0.85], [-3.4, 2.82, -0.45], [0, 2.3, -0.72], [3.4, 2.82, -0.45], [6.3, 2.35, -0.85], [6.95, 2.05, -1.6], [7.3, 1.9, -2.4]], 0.06, redWire)); // alim + vibreur droit
+  cables.add(tube([[-6.85, 1.95, -10.5], [-7.0, 2.0, -8.5], [-7.2, 2.0, -6.2]], 0.05, redWire));
+  cables.add(tube([[7.3, 0.6, -9.6], [7.15, 0.2, -10.3], [6.95, 0.0, -10.7]], 0.05, redWire));
+  const lunaCable = tube([[0, 2.6, -0.32], [1.5, 2.95, -0.6], [3.4, 2.95, -0.6], [6.3, 2.5, -1.0], [7.0, 2.2, -1.8], [7.35, 2.0, -2.4]], 0.06, darkWire); cables.add(lunaCable);
+  const vlCable = tube([[0.6, 1.5, 0.2], [1.2, 1.9, -0.35], [3.4, 2.7, -0.55], [6.3, 2.45, -1.0], [7.0, 2.15, -1.8], [7.35, 1.95, -2.4]], 0.045, darkWire); cables.add(vlCable);
+
+  /* ---------- Sol et obstacles ---------- */
+  const GROUND = -3.2;
+  (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+    const gr = g.createRadialGradient(64, 64, 4, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(0,0,0,.32)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(24, 28), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2; m.position.set(0, GROUND, -6.5); scene.add(m);
+  })();
+  function stripes() {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+    g.fillStyle = '#E9A23B'; g.fillRect(0, 0, 128, 128); g.fillStyle = '#16181c';
+    for (let i = 0; i < 384; i += 32) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 16, 0); g.lineTo(i + 16 - 128, 128); g.lineTo(i - 128, 128); g.closePath(); g.fill(); }
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding; return t;
+  }
+  const sTex = stripes(); sTex.repeat.set(2, 3);
+  const pillarMat = std({ map: sTex, roughness: 0.55, transparent: true });
+  const baseMat = std({ color: 0x1a1c20, roughness: 0.7, transparent: true });
+  const pillar = new THREE.Group(); scene.add(pillar);
+  const pm = cyl(0.9, 6.5, pillarMat, 40); pm.position.y = GROUND + 3.25; pillar.add(pm);
+  const pb = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.6, 0.3, 40), baseMat); pb.position.y = GROUND + 0.15; pillar.add(pb);
+  pillar.scale.setScalar(0.001);
+  const pit = new THREE.Group(); scene.add(pit);
+  const pitMat = new THREE.MeshBasicMaterial({ color: 0x07090c, transparent: true, depthWrite: false });
+  const pitM = new THREE.Mesh(new THREE.PlaneGeometry(14, 5), pitMat); pitM.rotation.x = -Math.PI / 2; pitM.position.y = GROUND + 0.01; pit.add(pitM);
+  const eTex = stripes(); eTex.repeat.set(10, 0.4);
+  const edgeMat = new THREE.MeshBasicMaterial({ map: eTex, transparent: true, depthWrite: false });
+  const edge = new THREE.Mesh(new THREE.PlaneGeometry(14, 0.5), edgeMat); edge.rotation.x = -Math.PI / 2; edge.position.set(0, GROUND + 0.02, -2.75); pit.add(edge);
+  pit.scale.setScalar(0.001);
+
+  const lineGeo = new THREE.BufferGeometry(); lineGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 1], 3));
+  const lineMat = new THREE.LineDashedMaterial({ color: 0xf0a24a, dashSize: 0.7, gapSize: 0.45, transparent: true, opacity: 0 });
+  const detLine = new THREE.Line(lineGeo, lineMat); scene.add(detLine);
+  const hazLbl = document.createElement('div'); hazLbl.className = 'lbl haz'; hazLbl.innerHTML = '<i></i><span></span>'; hazLbl.hidden = true; labelsEl.appendChild(hazLbl);
+
+  /* ---------- Capteur central : choix, nomenclature, câblage ---------- */
+  let lidarMode = 'luna';
+  const LIDAR = {
+    none: { note: "Sans capteur central, la caméra estime seule la distance. C'est moins précis, et lent sur un Pi Zero.", wire: '<b>Capteur</b><code>aucun</code>', src: 'Caméra seule (estimation)' },
+    vl: { note: "VL53L1X : capteur ToF minuscule et bon marché, en I²C. Portée d'environ 3 à 4 m et faisceau assez large (27°), suffisant pour un obstacle juste devant.", wire: '<b>VL53L1X</b><code>I²C : SDA → GPIO2 (broche 3), SCL → GPIO3 (broche 5), 3,3 V (broche 1), GND (broche 9)</code>', src: 'ToF VL53L1X', bom: ['Capteur ToF VL53L1X (carte)', 1, 6.50, false] },
+    luna: { note: "TF-Luna : vrai LiDAR à point unique, en UART. Portée jusqu'à 8 m et faisceau très étroit (2°) : il mesure précisément ce qui est droit devant. La caméra reste nécessaire pour la gauche et la droite. Activez le port série dans raspi-config.", wire: '<b>TF-Luna</b><code>UART : TX → GPIO15 (broche 10), RX → GPIO14 (broche 8), 5 V (broche 4), GND (broche 6)</code>', src: 'LiDAR TF-Luna (mesure directe)', bom: ['LiDAR Benewake TF-Luna', 1, 21, true] }
+  };
+  const BOM = [
+    ['Raspberry Pi Zero 2 W (avec connecteur)', 1, 19.40, false],
+    ['Carte microSD 16 Go', 1, 6, true],
+    ['Caméra OV5647 pour Pi Zero + nappe', 1, 10, true],
+    ['Moteur vibrant ERM pastille 10 mm, 3 V', 2, 2, true],
+    ['Transistors 2N2222, diodes 1N4148, résistances', 1, 2, true],
+    ['Batterie LiPo 3,7 V 1200 mAh', 1, 9, true],
+    ['Module chargeur USB-C + élévateur 5 V', 1, 5, true],
+    ['LED, fils, gaine thermo', 1, 4, true],
+    ['Filament PLA ou PETG (environ 40 g)', 1, 2, true]
+  ];
+  const eur = (v) => v.toFixed(2).replace('.', ',') + ' €';
+  function renderLidarUI() {
+    document.querySelectorAll('[data-lidar]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lidar === lidarMode)));
+    document.getElementById('lidarNote').textContent = LIDAR[lidarMode].note;
+    document.getElementById('wLidar').innerHTML = LIDAR[lidarMode].wire;
+    const rows = BOM.slice(); if (LIDAR[lidarMode].bom) rows.splice(3, 0, LIDAR[lidarMode].bom);
+    const tb = document.getElementById('bom'); tb.innerHTML = '';
+    let total = 0;
+    rows.forEach(([name, q, p, est]) => {
+      total += p;
+      const tr = document.createElement('tr'); if (LIDAR[lidarMode].bom && name === LIDAR[lidarMode].bom[0]) tr.className = 'opt';
+      const a = document.createElement('td'); a.textContent = name;
+      const b = document.createElement('td'); b.className = 'q'; b.textContent = q;
+      const c = document.createElement('td'); c.className = 'p'; c.textContent = (est ? '≈ ' : '') + eur(p);
+      tr.append(a, b, c); tb.appendChild(tr);
+    });
+    document.getElementById('bomTotal').textContent = '≈ ' + Math.round(total) + ' €';
+    luna.visible = lidarMode === 'luna'; vl.visible = lidarMode === 'vl';
+  }
+  document.querySelectorAll('[data-lidar]').forEach(b => b.addEventListener('click', () => { lidarMode = b.dataset.lidar; renderLidarUI(); }));
+  renderLidarUI();
+
+  /* ---------- État de simulation ---------- */
+  const sim = { dir: 'off', d: 1.4, auto: false, autoStart: 0 };
+  const dirBtns = [...document.querySelectorAll('.dir')];
+  const dist = document.getElementById('dist'), distOut = document.getElementById('distOut');
+  const autoCb = document.getElementById('auto');
+  function setDir(d) { sim.dir = d; dirBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.dir === d))); }
+  function setDist(v) { sim.d = v; dist.value = v; distOut.textContent = fmt(v) + ' m'; }
+  function stopAuto() { if (sim.auto) { sim.auto = false; autoCb.checked = false; } }
+  dirBtns.forEach(b => b.addEventListener('click', () => { stopAuto(); setDir(b.dataset.dir); }));
+  dist.addEventListener('input', () => { stopAuto(); setDist(parseFloat(dist.value)); });
+  autoCb.addEventListener('change', () => { sim.auto = autoCb.checked; sim.autoStart = performance.now() / 1000; if (!sim.auto) setDir('off'); });
+  window.addEventListener('keydown', e => {
+    if (e.target && e.target.tagName === 'INPUT') return;
+    const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'front', ArrowDown: 'down', Escape: 'off' };
+    if (map[e.key]) { e.preventDefault(); stopAuto(); setDir(map[e.key]); }
+  });
+
+  function hap(t) {
+    if (sim.dir === 'off' || sim.d > 3) return { L: 0, R: 0, T: 0, cont: false, active: false };
+    const cont = sim.d < 0.8;
+    const T = 0.16 + Math.max(0, sim.d - 0.8) / 2.2 * 0.84;
+    const pw = 0.09;
+    let L = 0, R = 0;
+    if (sim.dir === 'down') {
+      if (cont) { const a = Math.floor(t / 0.14) % 2 === 0; L = a ? 1 : 0; R = a ? 0 : 1; }
+      else { const ph = t % (2 * T); L = ph < pw ? 1 : 0; R = (ph >= T && ph < T + pw) ? 1 : 0; }
+    } else {
+      const on = cont ? 1 : ((t % T) < pw ? 1 : 0);
+      if (sim.dir !== 'right') L = on;
+      if (sim.dir !== 'left') R = on;
+    }
+    return { L, R, T, cont, active: true };
+  }
+
+  /* ---------- Affichage ---------- */
+  let xray = false, explodeTarget = 0, explodeT = 0, showLabels = true, cablesOn = true, fovOn = false;
+  document.getElementById('xray').addEventListener('change', e => {
+    xray = e.target.checked;
+    frameMat.transparent = xray; frameMat.opacity = xray ? 0.17 : 1; frameMat.depthWrite = !xray; frameMat.needsUpdate = true;
+  });
+  document.getElementById('explode').addEventListener('change', e => { explodeTarget = e.target.checked ? 1 : 0; });
+  document.getElementById('labelsT').addEventListener('change', e => { showLabels = e.target.checked; });
+  document.getElementById('cables').addEventListener('change', e => { cablesOn = e.target.checked; });
+  document.getElementById('fov').addEventListener('change', e => { fovOn = e.target.checked; fovCam.visible = fovOn; });
+  document.getElementById('tint').addEventListener('change', e => {
+    lensMat.color.set(e.target.checked ? 0x4a5866 : 0xd4e2ec); lensMat.opacity = e.target.checked ? 0.55 : 0.2;
+  });
+  const swatches = [...document.querySelectorAll('.swatch')];
+  swatches.forEach(b => b.addEventListener('click', () => {
+    frameMat.color.set(b.dataset.col); swatches.forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  }));
+
+  /* ---------- Points de vue ---------- */
+  const V = (p, t) => ({ p: new THREE.Vector3(...p), t: new THREE.Vector3(...t) });
+  const VIEWS = {
+    face: V([0, 2, 24], [0, 0.9, -5]),
+    tq: V([19, 9, 15], [0, 0.6, -5.5]),
+    profil: V([31, 2, -6], [0, 0.3, -6]),
+    dessus: V([0, 34, -5.98], [0, 0, -6]),
+    porteur: V([0, 5, -30], [0, 0.8, -4]),
+    scene: V([-12, 17, -27], [0, -1, 9])
+  };
+  camera.position.copy(VIEWS.tq.p); controls.target.copy(VIEWS.tq.t); controls.update();
+  const viewBtns = [...document.querySelectorAll('[data-view]')];
+  let tween = null;
+  function goView(name) {
+    viewBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === name)));
+    const v = VIEWS[name];
+    if (reduce) { camera.position.copy(v.p); controls.target.copy(v.t); controls.update(); return; }
+    const s0 = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+    const s1 = new THREE.Spherical().setFromVector3(v.p.clone().sub(v.t));
+    let dth = s1.theta - s0.theta; if (dth > Math.PI) dth -= 2 * Math.PI; if (dth < -Math.PI) dth += 2 * Math.PI;
+    tween = { s0, s1, dth, t0: controls.target.clone(), t1: v.t.clone(), k: 0 };
+  }
+  viewBtns.forEach(b => b.addEventListener('click', () => goView(b.dataset.view)));
+  controls.addEventListener('start', () => { tween = null; viewBtns.forEach(b => b.setAttribute('aria-pressed', 'false')); });
+
+  /* ---------- Oscilloscope ---------- */
+  const scope = document.getElementById('scope'), sg = scope.getContext('2d');
+  const hist = [];
+  const tokens = {}; let tokenAge = 99;
+  function readTokens() {
+    const cs = getComputedStyle(document.documentElement);
+    ['--accent', '--muted', '--line', '--fg'].forEach(k => tokens[k] = cs.getPropertyValue(k).trim());
+  }
+  function drawScope(now) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = scope.clientWidth, h = scope.clientHeight;
+    if (!w || !h) return;
+    if (scope.width !== Math.round(w * dpr) || scope.height !== Math.round(h * dpr)) { scope.width = Math.round(w * dpr); scope.height = Math.round(h * dpr); }
+    sg.setTransform(dpr, 0, 0, dpr, 0, 0); sg.clearRect(0, 0, w, h);
+    const x0 = 26, span = 3;
+    sg.strokeStyle = tokens['--line']; sg.lineWidth = 1;
+    for (let i = 0; i <= 6; i++) { const x = x0 + (w - x0 - 6) * i / 6; sg.beginPath(); sg.moveTo(x, 6); sg.lineTo(x, h - 6); sg.stroke(); }
+    sg.font = '500 11px "JetBrains Mono", monospace'; sg.textBaseline = 'middle';
+    [['G', h * 0.3, 'L'], ['D', h * 0.72, 'R']].forEach(([lab, y, k]) => {
+      sg.fillStyle = tokens['--muted']; sg.fillText(lab, 8, y);
+      let i = 0; sg.beginPath();
+      for (let x = x0; x <= w - 6; x++) {
+        const tt = now - span + (x - x0) / (w - 6 - x0) * span;
+        while (i < hist.length - 1 && hist[i + 1].t <= tt) i++;
+        const on = hist.length && hist[i].t <= tt ? hist[i][k] : 0;
+        const y2 = y - on * (h * 0.16) * (Math.floor(x / 2) % 2 ? 1 : -1);
+        x === x0 ? sg.moveTo(x, y2) : sg.lineTo(x, y2);
+      }
+      sg.strokeStyle = tokens['--accent']; sg.lineWidth = 1.3; sg.stroke();
+    });
+  }
+
+  /* ---------- Lecture d'état ---------- */
+  const rLvl = document.getElementById('rLvl'), rPat = document.getElementById('rPat'), rRyt = document.getElementById('rRyt'), rSrc = document.getElementById('rSrc');
+  const statusEl = document.getElementById('status'), statusTxt = document.getElementById('statusTxt');
+  const setT = (el, v) => { if (el.textContent !== v) el.textContent = v; };
+  const PAT = { left: 'Vibreur gauche seul', right: 'Vibreur droit seul', front: 'Les deux ensemble', down: 'Alternance gauche › droite' };
+  const DIRN = { left: 'à gauche', right: 'à droite', front: 'devant', down: 'marche / trou' };
+  const usesCentral = () => (sim.dir === 'front' || sim.dir === 'down') && lidarMode !== 'none';
+  function source() {
+    if (sim.dir === 'off') return '—';
+    if (sim.dir === 'left' || sim.dir === 'right') return 'Caméra (vision IA)';
+    if (sim.dir === 'down') return lidarMode === 'none' ? 'Caméra seule (estimation)' : 'Caméra + ' + (lidarMode === 'luna' ? 'TF-Luna' : 'VL53L1X');
+    return LIDAR[lidarMode].src;
+  }
+  function updateReadout(h) {
+    let lvl = 'Aucun danger', sev = '0';
+    if (sim.dir !== 'off') {
+      if (sim.d > 3) lvl = 'Hors zone';
+      else if (sim.d >= 1.5) { lvl = 'Approche'; sev = '1'; }
+      else if (sim.d >= 0.8) { lvl = 'Proche'; sev = '2'; }
+      else { lvl = 'Imminent'; sev = '3'; }
+    }
+    setT(rLvl, lvl); if (rLvl.dataset.sev !== sev) rLvl.dataset.sev = sev;
+    setT(rSrc, source());
+    setT(rPat, h.active ? PAT[sim.dir] : '—');
+    let ry = '—';
+    if (h.active) ry = h.cont ? 'Vibration continue' : (sim.dir === 'down' ? 'G puis D, toutes les ' + fmt(2 * h.T, 2) + ' s' : '1 impulsion / ' + fmt(h.T, 2) + ' s');
+    setT(rRyt, ry);
+    statusEl.classList.toggle('on', h.active);
+    setT(statusTxt, sim.dir === 'off' ? 'Veille' : (h.active ? 'Danger ' + DIRN[sim.dir] + ' · ' + fmt(sim.d) + ' m' : 'Caméra active · rien à signaler'));
+  }
+
+  /* ---------- Taille ---------- */
+  function resize() {
+    const r = stage.getBoundingClientRect(); if (!r.width || !r.height) return;
+    renderer.setSize(r.width, r.height, false);
+    camera.aspect = r.width / r.height; camera.fov = camera.aspect < 0.9 ? 44 : 32; camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+
+  /* ---------- Boucle ---------- */
+  const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), origin = new THREE.Vector3();
+  const hazPos = new THREE.Vector3(0, 0, 20);
+  let ghost = 1, last = performance.now() / 1000, frameN = 0, beamLvl = 0;
+  const ease = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+  const SCEN = ['left', 'front', 'right', 'down'];
+
+  function loop(ms) {
+    const now = ms / 1000, dt = Math.min(0.05, now - last); last = now; frameN++;
+
+    if (tween) {
+      tween.k = Math.min(1, tween.k + dt / 0.9); const e = ease(tween.k);
+      const sp = new THREE.Spherical(
+        tween.s0.radius + (tween.s1.radius - tween.s0.radius) * e,
+        tween.s0.phi + (tween.s1.phi - tween.s0.phi) * e,
+        tween.s0.theta + tween.dth * e);
+      controls.target.lerpVectors(tween.t0, tween.t1, e);
+      camera.position.setFromSpherical(sp).add(controls.target);
+      if (tween.k >= 1) tween = null;
+    }
+
+    if (sim.auto) {
+      const k = ((now - sim.autoStart) % 20) / 5, idx = Math.floor(k), f = k - idx;
+      if (sim.dir !== SCEN[idx]) setDir(SCEN[idx]);
+      const d = Math.round((3.4 - f * 2.9) * 10) / 10; if (d !== sim.d) setDist(d);
+    }
+
+    const h = hap(now);
+    const amp = 0.55 + 0.45 * Math.min(1, Math.max(0, (3 - sim.d) / 2.6));
+
+    explodeT += (explodeTarget - explodeT) * Math.min(1, dt * (reduce ? 60 : 4.5));
+    const e = explodeT * explodeT * (3 - 2 * explodeT);
+    for (const p of parts) p.obj.position.copy(p.base).addScaledVector(p.off, e);
+    cables.visible = cablesOn && e < 0.03;
+    lunaCable.visible = lidarMode === 'luna'; vlCable.visible = lidarMode === 'vl';
+
+    for (const S of sides) {
+      const on = S.s === 1 ? h.L : h.R;
+      S.level = on ? 1 : S.level * Math.exp(-dt * 14);
+      S.motorMat.emissiveIntensity = S.level * 2.2 * amp;
+      S.padMat.emissiveIntensity = S.level * 1.8 * amp;
+      S.sprite.material.opacity = S.level * 0.95 * amp;
+      if (on && !reduce) { S.tg.position.x += (Math.random() - 0.5) * 0.05 * amp; S.tg.position.y += (Math.random() - 0.5) * 0.04 * amp; }
+      if (on && (!S.prev || now - S.lastRing > 0.2)) {
+        let r = S.rings[0]; for (const x of S.rings) if (x.age > r.age) r = x;
+        r.age = 0; S.lastRing = now;
+      }
+      S.prev = on;
+      for (const r of S.rings) {
+        r.age += dt; const k = r.age / 0.7;
+        if (k >= 1) { r.m.visible = false; continue; }
+        r.m.visible = true; r.m.scale.setScalar(1 + k * 3.2); r.m.material.opacity = (1 - k) * 0.85 * amp;
+      }
+    }
+    const ledTarget = sim.dir !== 'off' ? 2.4 : 0;
+    ledMat.emissiveIntensity += (ledTarget - ledMat.emissiveIntensity) * Math.min(1, dt * 8);
+
+    // Faisceau du capteur central
+    const beamTarget = fovOn ? 0.18 : (h.active && usesCentral() ? 0.3 : 0);
+    beamLvl += (beamTarget - beamLvl) * Math.min(1, dt * 6);
+    for (const b of [lunaBeam, vlBeam]) { b.material.opacity = beamLvl; b.visible = beamLvl > 0.01; }
+
+    // Obstacles
+    const D = 14 + sim.d * 6;
+    const showPillar = h.active && sim.dir !== 'down', showPit = h.active && sim.dir === 'down';
+    const ang = sim.dir === 'left' ? 0.62 : sim.dir === 'right' ? -0.62 : 0;
+    const k8 = Math.min(1, dt * 8);
+    if (showPillar) { tmp.set(Math.sin(ang) * D, 0, Math.cos(ang) * D); pillar.position.lerp(tmp, pillar.scale.x < 0.05 ? 1 : k8); }
+    if (showPit) { tmp.set(0, 0, D); pit.position.lerp(tmp, pit.scale.x < 0.05 ? 1 : k8); }
+    pillar.scale.setScalar(Math.max(0.001, pillar.scale.x + ((showPillar ? 1 : 0) - pillar.scale.x) * k8));
+    pit.scale.setScalar(Math.max(0.001, pit.scale.x + ((showPit ? 1 : 0) - pit.scale.x) * k8));
+    hazPos.copy(showPit ? pit.position : pillar.position); hazPos.y = showPit ? GROUND : 0.4;
+    if (showPillar && sim.dir === 'front' && lidarMode !== 'none') hazPos.y = lidarMode === 'luna' ? 4.4 : 2.9;
+    tmp.copy(hazPos).sub(controls.target).normalize(); tmp2.copy(camera.position).sub(controls.target).normalize();
+    ghost += ((tmp.dot(tmp2) > 0.35 ? 0.15 : 1) - ghost) * k8;
+    pillarMat.opacity = baseMat.opacity = ghost; pitMat.opacity = 0.85 * ghost; edgeMat.opacity = ghost;
+
+    (usesCentral() ? (lidarMode === 'luna' ? luna : vl) : camGroup).getWorldPosition(origin);
+    const pa = lineGeo.attributes.position; pa.setXYZ(0, origin.x, origin.y, origin.z); pa.setXYZ(1, hazPos.x, hazPos.y, hazPos.z); pa.needsUpdate = true;
+    detLine.computeLineDistances();
+    lineMat.opacity += (((showPillar || showPit) ? 0.9 * ghost : 0) - lineMat.opacity) * k8;
+
+    controls.update();
+    renderer.render(scene, camera);
+
+    // Étiquettes
+    const r = stage.getBoundingClientRect(), W = r.width, H = r.height;
+    const showInternal = xray || e > 0.4;
+    for (const a of anchors) {
+      const vis = showLabels && (!a.internal || showInternal) && (!a.cond || a.cond());
+      if (!vis) { if (!a.el.hidden) a.el.hidden = true; continue; }
+      a.o.getWorldPosition(tmp); tmp.project(camera);
+      if (tmp.z > 1) { a.el.hidden = true; continue; }
+      a.el.hidden = false;
+      a.el.style.transform = `translate(${((tmp.x * 0.5 + 0.5) * W - 4).toFixed(1)}px,${((-tmp.y * 0.5 + 0.5) * H - 6).toFixed(1)}px)`;
+    }
+    if ((showPillar || showPit) && ghost > 0.5) {
+      tmp.copy(hazPos); if (showPillar) tmp.y = GROUND + 6.8; tmp.project(camera);
+      hazLbl.hidden = tmp.z > 1;
+      hazLbl.querySelector('span').textContent = fmt(sim.d) + ' m · ' + DIRN[sim.dir];
+      hazLbl.style.transform = `translate(${((tmp.x * 0.5 + 0.5) * W - 4).toFixed(1)}px,${((-tmp.y * 0.5 + 0.5) * H - 6).toFixed(1)}px)`;
+    } else hazLbl.hidden = true;
+
+    hist.push({ t: now, L: h.L, R: h.R });
+    while (hist.length && hist[0].t < now - 3.3) hist.shift();
+    if (++tokenAge > 30) { readTokens(); tokenAge = 0; }
+    drawScope(now);
+    if (frameN % 4 === 0) updateReadout(h);
+    requestAnimationFrame(loop);
+  }
+  readTokens(); setDist(1.4);
+  requestAnimationFrame(loop);
+})();
+</script>
+
+</body></html>
